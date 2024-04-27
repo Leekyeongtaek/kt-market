@@ -1,6 +1,6 @@
 # KT-MARKET 포트폴리오
 ## 프로젝트 상세
-- Java : 1.7
+- Java : 17
 - SpringBoot : 3.2.4
 - MySql : 8.0.32
 - QueryDSL : 5.0.0
