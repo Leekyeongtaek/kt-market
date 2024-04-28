@@ -5,7 +5,7 @@
 - 테이블 ERD
 - 엔티티 ERD
 - 핵심 기능과 코드
-- 요구사항과 테스트 코드
+- 테스트 코드
 
 ### 프로젝트 상세
 - Java : 17
@@ -69,3 +69,14 @@
 
 ### 엔티티 ERD
 <img width="800" alt="kt_market_ERD2" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/603fbe23-3eb7-4575-870e-f67010dea1da">
+
+### 핵심 기능과 코드
+<img width="1151" alt="포인트1" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/ed617042-3128-4df7-8755-20b8efc09912">
+<img width="1153" alt="포인트2" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/23ee600f-6036-4286-9b0c-0c36a77ecf88">
+<img width="1155" alt="포인트3" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/7260d468-f3af-46d8-be70-e1a8fc252b7d">
+<img width="1148" alt="포인트4" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/afb4c44b-ca95-4ed6-aa60-afaf9c3616a6">
+<img width="1149" alt="포인트5" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/cf68e679-92d1-4334-b99a-79bea94f6175">
+<img width="1165" alt="포인트6" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/be525c36-2c12-40c8-a5eb-4ea0969c7db2">
+<img width="1150" alt="포인트7" src="https://github.com/Leekyeongtaek/kt-market/assets/56353425/ed86c093-f701-4500-8e5d-b79130d71cbf">
+
+### 테스트 코드
