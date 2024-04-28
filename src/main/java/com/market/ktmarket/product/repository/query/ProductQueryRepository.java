@@ -17,33 +17,56 @@ import java.util.List;
 import static com.market.ktmarket.product.domain.QProduct.*;
 
 @Repository
-public class ProductQueryRepository extends Querydsl4RepositorySupport {
+public class ProductQueryRepository {
 
     private JPAQueryFactory queryFactory;
 
     public ProductQueryRepository(JPAQueryFactory queryFactory) {
-        super(Product.class);
         this.queryFactory = queryFactory;
     }
 
+//    public Page<ProductQuery> searchProduct(Pageable pageable, ProductSearchCondition searchCondition) {
+//        Page<Product> result = applyPagination(pageable, contentQuery -> contentQuery
+//                        .selectFrom(product)
+//                        .where(productTypeEq(searchCondition.getType()),
+//                                productNameEq(searchCondition.getName()),
+//                                productPriceGoe(searchCondition.getMinPrice()),
+//                                productPriceLoe(searchCondition.getMaxPrice())),
+//                countQuery -> countQuery
+//                        .select(product.count()).from(product)
+//                        .where(productTypeEq(searchCondition.getType()),
+//                                productNameEq(searchCondition.getName()),
+//                                productPriceGoe(searchCondition.getMinPrice()),
+//                                productPriceLoe(searchCondition.getMaxPrice()))
+//        );
+//
+//        List<ProductQuery> productQueries = result.getContent().stream().map(ProductQuery::new).toList();
+//
+//        return new PageImpl<>(productQueries, pageable, result.getTotalElements());
+//    }
+
     public Page<ProductQuery> searchProduct(Pageable pageable, ProductSearchCondition searchCondition) {
-        Page<Product> result = applyPagination(pageable, contentQuery -> contentQuery
-                        .selectFrom(product)
-                        .where(productTypeEq(searchCondition.getType()),
-                                productNameEq(searchCondition.getName()),
-                                productPriceGoe(searchCondition.getMinPrice()),
-                                productPriceLoe(searchCondition.getMaxPrice())),
-                countQuery -> countQuery
-                        .select(product.count()).from(product)
-                        .where(productTypeEq(searchCondition.getType()),
-                                productNameEq(searchCondition.getName()),
-                                productPriceGoe(searchCondition.getMinPrice()),
-                                productPriceLoe(searchCondition.getMaxPrice()))
-        );
 
-        List<ProductQuery> productQueries = result.getContent().stream().map(ProductQuery::new).toList();
+        List<Product> products = queryFactory.selectFrom(product)
+                .where(productTypeEq(searchCondition.getType()),
+                        productNameEq(searchCondition.getName()),
+                        productPriceGoe(searchCondition.getMinPrice()),
+                        productPriceLoe(searchCondition.getMaxPrice())
+                ).orderBy(product.id.desc())
+                .fetch();
 
-        return new PageImpl<>(productQueries, pageable, result.getTotalElements());
+        Long count = queryFactory.select(product.count())
+                .from(product)
+                .where(productTypeEq(searchCondition.getType()),
+                        productNameEq(searchCondition.getName()),
+                        productPriceGoe(searchCondition.getMinPrice()),
+                        productPriceLoe(searchCondition.getMaxPrice())
+                ).fetchOne();
+
+
+        List<ProductQuery> productQueries = products.stream().map(ProductQuery::new).toList();
+
+        return new PageImpl<>(productQueries, pageable, count);
     }
 
     private BooleanExpression productTypeEq(Product.Type type) {
