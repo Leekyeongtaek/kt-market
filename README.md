@@ -270,3 +270,356 @@ class MemberPointTest {
     }
 }
 ```
+#### Product
+```
+class ProductTest {
+
+    @Test
+    void ProductSave_객체로_Product_객체를_생성할_수_있다() {
+        //given
+        ProductSave productSave = new ProductSave("동원)양반죽", 2000, 2, FOOD);
+
+        //when
+        Product product = productSave.toEntity();
+
+        //then
+        assertThat(product.getName()).isEqualTo("동원)양반죽");
+        assertThat(product.getPrice()).isEqualTo(2000);
+        assertThat(product.getStock()).isEqualTo(2);
+        assertThat(product.getType()).isEqualTo(FOOD);
+    }
+
+    @Test
+    void ProductUpdate_객체로_Product_객체를_수정할_수_있다() {
+        //given
+        ProductUpdate productUpdate = new ProductUpdate("동원)양반죽 수정", 2000, 10);
+
+        Product product = Product.builder()
+                .name("동원)양반죽")
+                .price(1000)
+                .stock(5)
+                .build();
+
+        //when
+        product.update(productUpdate);
+
+        //then
+        assertThat(product.getName()).isEqualTo("동원)양반죽 수정");
+        assertThat(product.getPrice()).isEqualTo(2000);
+        assertThat(product.getStock()).isEqualTo(15);
+    }
+
+}
+```
+#### Product 검색
+```
+@Import(TestConfig.class)
+@DataJpaTest
+class ProductQueryRepositoryTest {
+
+    @Autowired
+    ProductRepository productRepository;
+
+    @Autowired
+    ProductQueryRepository productQueryRepository;
+
+    @BeforeEach
+    void setUp() {
+        Product product1 = Product.builder()
+                .name("삼립)오븐에구운도넛")
+                .type(Product.Type.FOOD)
+                .price(1200)
+                .build();
+
+        Product product2 = Product.builder()
+                .name("롯데)도리토스나쵸치즈")
+                .type(SNACK)
+                .price(1700)
+                .build();
+
+        Product product3 = Product.builder()
+                .name("농심)양파링")
+                .type(SNACK)
+                .price(1500)
+                .build();
+
+        Product product4 = Product.builder()
+                .name("매일)우유속에딸기")
+                .type(DRINK)
+                .price(1900)
+                .build();
+
+        Product product5 = Product.builder()
+                .name("매일)우유속에코코아")
+                .type(DRINK)
+                .price(1900)
+                .build();
+
+        productRepository.saveAll(List.of(product1, product2, product3, product4, product5));
+    }
+
+    @Test
+    void 상품_검색시_상품명으로_상품을_검색할_수_있다() {
+        //given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ProductSearchCondition searchCondition = new ProductSearchCondition("매일", null, null, null);
+
+        //when
+        List<ProductQuery> content = productQueryRepository.searchProduct(pageRequest, searchCondition).getContent();
+
+        //then
+        assertThat(content.stream().allMatch(p -> p.getName().contains("우유"))).isTrue();
+    }
+
+    @Test
+    void 상품_검색시_상품_가격으로_상품을_검색할_수_있다() {
+        //given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ProductSearchCondition searchCondition = new ProductSearchCondition(null, 1200, 1700, null);
+
+        //when
+        List<ProductQuery> content = productQueryRepository.searchProduct(pageRequest, searchCondition).getContent();
+
+        //then
+        assertThat(content.stream().allMatch(p -> p.getPrice() >= 1200 && p.getPrice() <= 1700)).isTrue();
+    }
+
+    @Test
+    void 상품_검색시_상품_타입으로_상품을_검색할_수_있다() {
+        //given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ProductSearchCondition searchCondition = new ProductSearchCondition(null, null, null, SNACK);
+
+        //when
+        List<ProductQuery> content = productQueryRepository.searchProduct(pageRequest, searchCondition).getContent();
+
+        //then
+        assertThat(content.stream().allMatch(p -> p.getType().equals(SNACK))).isTrue();
+    }
+}
+```
+#### Receipt
+```
+class ReceiptTest {
+
+    @Test
+    void 결제완료() {
+        //given
+        Receipt receipt = Receipt.builder()
+                .receiptItems(List.of(ReceiptItem.builder().build()))
+                .build();
+
+        //when
+        receipt.payed();
+
+        //then
+        assertThat(receipt.getStatus()).isEqualTo(PAYED);
+    }
+
+    @Test
+    void 결제취소() {
+        //given
+        Receipt receipt = Receipt.builder()
+                .receiptItems(List.of(ReceiptItem.builder().build()))
+                .status(PAYED)
+                .build();
+
+        //when
+        receipt.cancel();
+
+        //then
+        assertThat(receipt.getStatus()).isEqualTo(CANCEL);
+    }
+
+    @Test
+    void 총결제금액은_구매상품의_상품금액_곱하기_구매수량의_합이다() {
+        //given
+        ReceiptItem receiptItem = ReceiptItem.builder()
+                .productPrice(2000)
+                .quantity(5)
+                .build();
+
+        Receipt receipt = Receipt.builder()
+                .receiptItems(List.of(receiptItem))
+                .build();
+
+        //when
+        int totalPrice = receipt.calculateTotalPrice();
+
+        //then
+        assertThat(totalPrice).isEqualTo(10000);
+    }
+
+    @Test
+    void 실제_결제금액은_총결제금액에서_사용포인트를_차감한_금액이다() {
+        //given
+        ReceiptItem receiptItem = ReceiptItem.builder()
+                .productPrice(2000)
+                .quantity(5)
+                .build();
+
+        Receipt receipt = Receipt.builder()
+                .receiptItems(List.of(receiptItem))
+                .usePoint(1000)
+                .build();
+
+        //when
+        int paymentAmount = receipt.calculatePaymentAmount();
+
+        //then
+        assertThat(paymentAmount).isEqualTo(9000);
+    }
+
+    @Test
+    void 현금결제_여부는_예상_결제금액에서_사용포인트를_차감한_금액이_0보다_큰_경우_True_반환() {
+        //given
+        ReceiptItem receiptItem = ReceiptItem.builder()
+                .productPrice(1000)
+                .quantity(1)
+                .build();
+
+        Receipt receipt = Receipt.builder()
+                .receiptItems(List.of(receiptItem))
+                .usePoint(500)
+                .build();
+
+        //when
+        boolean isCashPayment = receipt.isCashPayment();
+
+        //then
+        assertThat(isCashPayment).isTrue();
+    }
+
+    @Test
+    void 포인트_사용여부는_사용포인트_값이_0보다_큰_경우_True_반환() {
+        //given
+        ReceiptItem receiptItem = ReceiptItem.builder()
+                .productPrice(1000)
+                .quantity(1)
+                .build();
+
+        Receipt receipt = Receipt.builder()
+                .receiptItems(List.of(receiptItem))
+                .usePoint(500)
+                .build();
+
+        //when
+        boolean isUsePoint = receipt.isUsePoint();
+
+        //then
+        assertThat(isUsePoint).isTrue();
+    }
+
+    @Test
+    void 사용하려는_포인트금액이_예상_결제금액보다_큰_경우_예외발생() {
+        //given
+        ReceiptItem receiptItem = ReceiptItem.builder()
+                .productPrice(1000)
+                .quantity(1)
+                .build();
+
+
+        Receipt receipt = Receipt.builder()
+                .usePoint(1001)
+                .receiptItems(List.of(receiptItem))
+                .build();
+
+        //when + then
+        assertThatThrownBy(receipt::validatePointUsePolicy)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("사용 포인트는 예상 결제 금액보다 클 수 없습니다.");
+    }
+}
+```
+#### ProductCounter
+```
+class ProductCounterTest {
+
+    @Test
+    void ProductCart_객체로_Receipt_객체를_생성할_수_있다() {
+        //given
+        ProductCart.ProductCartItem productCartItem1 = new ProductCart.ProductCartItem(1L, "매일우유", 1000, 5);
+        ProductCart.ProductCartItem productCartItem2 = new ProductCart.ProductCartItem(2L, "서울우유", 1200, 1);
+        ProductCart productCart = new ProductCart(1L, List.of(productCartItem1, productCartItem2), 100);
+
+        //when
+        Receipt receipt = new ProductCounter().unpackProductCart(productCart);
+
+        //then
+        assertThat(receipt.getMemberId()).isEqualTo(1L);
+        assertThat(receipt.getUsePoint()).isEqualTo(100);
+        assertThat(receipt.getReceiptItems().size()).isEqualTo(2);
+        assertThat(receipt.getReceiptItems()).extracting("productId").containsExactly(1L, 2L);
+        assertThat(receipt.getReceiptItems()).extracting("productName").containsExactly("매일우유", "서울우유");
+        assertThat(receipt.getReceiptItems()).extracting("productPrice").containsExactly(1000, 1200);
+        assertThat(receipt.getReceiptItems()).extracting("quantity").containsExactly(5, 1);
+    }
+}
+```
+#### ReceiptValidator
+```
+class ReceiptValidatorTest {
+
+    ReceiptValidator receiptValidator;
+
+    @BeforeEach
+    void setUp() {
+        receiptValidator = new ReceiptValidator(Mockito.mock(ProductRepository.class));
+    }
+
+    @Test
+    void 유효성_검증_성공() {
+        //given
+        ReceiptItem receiptItem = ReceiptItem.builder().productId(1L).productName("매일우유").productPrice(1000).quantity(1).build();
+
+        Receipt receipt = Receipt.builder().receiptItems(List.of(receiptItem)).build();
+
+        Product product = Product.builder().name("매일우유").price(1000).build();
+
+        //when + then
+        Assertions.assertThatNoException().isThrownBy(() -> receiptValidator.validate(receipt, new HashMap<>() {{
+            put(1L, product);
+        }}));
+    }
+
+    @Test
+    void 상품번호가_존재하지_않는_상품_번호인_경우_예외발생() {
+        ReceiptItem receiptItem = ReceiptItem.builder().productId(2L).productName("매일우유").productPrice(1000).quantity(1).build();
+
+        Receipt receipt = Receipt.builder().receiptItems(List.of(receiptItem)).build();
+
+        Product product = Product.builder().name("매일우유").price(1000).build();
+
+        Assertions.assertThatThrownBy(() -> receiptValidator.validate(receipt, new HashMap<>() {{
+            put(1L, product);
+        }})).isInstanceOf(IllegalArgumentException.class).hasMessage("존재하지 않는 상품 번호입니다.");
+    }
+
+    @Test
+    void 상품명이_일치하지_않으면_예외발생() {
+        ReceiptItem receiptItem = ReceiptItem.builder().productId(1L).productName("매일우유 변경").productPrice(1000).quantity(1).build();
+
+        Receipt receipt = Receipt.builder().receiptItems(List.of(receiptItem)).build();
+
+        Product product = Product.builder().name("매일우유").price(1000).build();
+
+        Assertions.assertThatThrownBy(() -> receiptValidator.validate(receipt, new HashMap<>() {{
+            put(1L, product);
+        }})).isInstanceOf(IllegalArgumentException.class).hasMessage("상품명이 변경되었습니다.");
+    }
+
+    @Test
+    void 상품가격이_일치하지_않으면_예외발생() {
+        ReceiptItem receiptItem = ReceiptItem.builder().productId(1L).productName("매일우유").productPrice(1000).quantity(1).build();
+
+        Receipt receipt = Receipt.builder().receiptItems(List.of(receiptItem)).build();
+
+        Product product = Product.builder().name("매일우유").price(1200).build();
+
+        Assertions.assertThatThrownBy(() -> receiptValidator.validate(receipt, new HashMap<>() {{
+            put(1L, product);
+        }})).isInstanceOf(IllegalArgumentException.class).hasMessage("가격이 변경되었습니다.");
+    }
+
+}
+```
