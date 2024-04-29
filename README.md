@@ -15,6 +15,7 @@
 - [테스트 코드](#테스트-코드)
 
 ### 프로젝트 상세
+- IDE : IntelliJ
 - Java : 17
 - SpringBoot : 3.2.4
 - MySql : 8.0.32
